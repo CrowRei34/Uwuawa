@@ -1,4 +1,4 @@
-FROM ghcr.io/containerpak/wine:main
+FROM ghcr.io/containerpak/wine@sha256:349a09eac549c9cddd5b6b40d892d72b4a5b92b25bd210a8e20075072969a97a
 
 RUN dpkg --add-architecture i386 \
     && apt-get update \

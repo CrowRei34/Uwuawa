@@ -39,7 +39,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Containerfile
@@ -53,7 +54,7 @@ jobs:
         env:
           IMAGE: ghcr.io/crowrei34/cspenguin-cpak:main
         run: |
-          digest=$(docker buildx imagetools inspect "$IMAGE" --format '{{.Manifest.Digest}}')
+          digest='${{ steps.build.outputs.digest }}'
           jq --arg image "${IMAGE%:main}@${digest}" '.image = $image' cpak.json > cpak.json.tmp
           mv cpak.json.tmp cpak.json
 

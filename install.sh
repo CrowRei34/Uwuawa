@@ -115,6 +115,10 @@ WINE_URL="https://github.com/Kron4ek/Wine-Builds/releases/download/${WINE_VERSIO
 FREETYPE_VERSION="2.13.2"
 FREETYPE_URL="https://archive.archlinux.org/packages/f/freetype2/freetype2-${FREETYPE_VERSION}-1-x86_64.pkg.tar.zst"
 FREETYPE32_URL="https://archive.archlinux.org/packages/l/lib32-freetype2/lib32-freetype2-${FREETYPE_VERSION}-1-x86_64.pkg.tar.zst"
+WEBVIEW2_URL="https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/76eb3dc4-7851-45b7-a392-460523b0e2bb/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
+WEBVIEW2_SHA256="9f4b90be849ee2fdb1260ff5236bd0faffc5b3e5b48113918ddc6ab031ebbb9e"
+WEBVIEW2_FILE="$DOWNLOAD_DIR/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
+WEBVIEW2_MANAGED="/opt/cspenguin/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
 WINETRICKS_URL="https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks"
 GECKO_VERSION="2.47.4"
 GECKO_URL="https://dl.winehq.org/wine/wine-gecko/${GECKO_VERSION}/wine-gecko-${GECKO_VERSION}-x86_64.msi"
@@ -769,6 +773,7 @@ export mesa_glthread=true
 export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH="$WINEPREFIX"
 export RADV_PERFTEST=gpl
+export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-background-networking --no-first-run --disable-sync --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
 CSP_EXE="$CSP_INSTALL_PATH"
 
 # Pre-load material database into page cache to help speed up loading of materials.
@@ -837,6 +842,7 @@ export mesa_glthread=true
 export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH="$WINEPREFIX"
 export RADV_PERFTEST=gpl
+export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
 exec wine "$STUDIO_EXE"
 LAUNCHEOF
     chmod +x "$LAUNCHER_STUDIO"
@@ -1308,7 +1314,7 @@ ok "dependencies"
 # [2/7] downloads
 
 step "downloads"
-info "grabbing Wine and the CSP installer."
+info "grabbing Wine, WebView2, and the CSP installer."
 if [[ $DRY_RUN -eq 0 ]]; then
     mkdir -p "$DOWNLOAD_DIR" "$LAUNCHER_DIR"
 fi
@@ -1348,6 +1354,13 @@ _queue_dl() {
 
 [[ $_need_wine -eq 1 ]] && _queue_dl "Wine ${WINE_VERSION}" "$WINE_URL" "$_wine_tar" \
                          || ok "Wine ${WINE_VERSION} (cached)"
+if [[ $CPAK_MODE -eq 1 ]]; then
+    WEBVIEW2_INSTALLER="$WEBVIEW2_MANAGED"
+    [[ $DRY_RUN -eq 1 || -f "$WEBVIEW2_INSTALLER" ]] || die "WebView2 runtime source is missing"
+else
+    WEBVIEW2_INSTALLER="$WEBVIEW2_FILE"
+    _queue_dl "WebView2 Runtime" "$WEBVIEW2_URL" "$WEBVIEW2_INSTALLER"
+fi
 _queue_dl "winetricks" "$WINETRICKS_URL" "$WINETRICKS_BIN"
 
 if [[ ${#_dl_pids[@]} -gt 0 ]]; then
@@ -1376,6 +1389,11 @@ if [[ ${#_dl_pids[@]} -gt 0 ]]; then
             _i=$((_i + 1))
         fi
     done
+fi
+
+if [[ $CPAK_MODE -eq 0 && $DRY_RUN -eq 0 ]]; then
+    _sum=$(sha256sum "$WEBVIEW2_INSTALLER" | cut -d' ' -f1)
+    [[ "$_sum" == "$WEBVIEW2_SHA256" ]] || die "WebView2 checksum mismatch (got $_sum)"
 fi
 
 if [[ $_need_wine -eq 1 ]] && [[ $DRY_RUN -eq 0 ]]; then
@@ -1516,6 +1534,7 @@ fi
 step "install CSP"
 
 if [[ $DRY_RUN -eq 1 ]]; then
+    ok "WebView2 Runtime (dry run)"
     gap
     msg "${BOLD}press enter to launch the CSP installer.${RESET}"
     msg "${DIM}complete the installer as normal.${RESET}"
@@ -1524,6 +1543,15 @@ if [[ $DRY_RUN -eq 1 ]]; then
     read -rp "press enter to continue..." </dev/tty
     ok "Clip Studio Paint (dry run)"
 else
+    info "installing WebView2 (for login/store panels)."
+    warn "WebView2 will flash open briefly, that's normal"
+    env WINEDEBUG=-all WINEDLLOVERRIDES="winemenubuilder.exe=d" \
+        wine "$WEBVIEW2_INSTALLER" >> "$LOG_FILE" 2>&1 &
+    wait $! || warn "WebView2 installer exited with an error"
+    env WINEDEBUG=-all wineserver -k 2>/dev/null || true
+    sleep 1
+    ok "WebView2 Runtime"
+
     gap
     msg "${BOLD}press enter to launch the CSP installer.${RESET}"
     msg "${DIM}complete the installer as normal.${RESET}"
@@ -1542,6 +1570,7 @@ else
 
     ok "Clip Studio Paint"
 
+    run wine reg add "HKCU\\Software\\Wine\\AppDefaults\\msedgewebview2.exe" /v Version /t REG_SZ /d "win7" /f || warn "failed to set webview2 version"
     run wine reg add "HKCU\\Software\\Wine\\AppDefaults\\CLIPStudioPaint.exe" /v Version /t REG_SZ /d "win81" /f || warn "failed to set CSP version"
     run wine reg add "HKCU\\Software\\Wine\\AppDefaults\\CLIPStudio.exe" /v Version /t REG_SZ /d "win81" /f || warn "failed to set CLIP STUDIO version"
 fi
