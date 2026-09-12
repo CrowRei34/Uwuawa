@@ -4,7 +4,7 @@
   "name": "CSPenguin Clip Studio Paint",
   "description": "Clip Studio Paint running in a portable cpak environment.",
   "version": "0.1.0",
-  "image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:32fb091b17c89371290d9240567169d3de6261f9937263725bd26bee5feb6331",
   "runtime_sources": [
     {
       "name": "MicrosoftEdgeWebView2RuntimeInstallerX64.exe",
@@ -23,7 +23,9 @@
     "/usr/share/applications/com.cspenguin.ClipStudioPaint.desktop",
     "/usr/share/applications/com.cspenguin.ClipStudio.desktop"
   ],
-  "form_factors": ["desktop"],
+  "form_factors": [
+    "desktop"
+  ],
   "idle_time": 0,
   "override": {
     "displayX11": true,
@@ -44,7 +46,10 @@
       "containingFolder": true
     },
     "filesystem": [
-      {"path": "home", "access": "read-write"}
+      {
+        "path": "home",
+        "access": "read-write"
+      }
     ],
     "network": true,
     "openURI": true,
