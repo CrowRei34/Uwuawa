@@ -45,13 +45,13 @@ jobs:
           file: Containerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/cspenguin-cpak:main
+          tags: ghcr.io/crowrei34/cspenguin-cpak:main
           provenance: mode=max
           sbom: true
 
       - name: Pin image digest
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/cspenguin-cpak:main
+          IMAGE: ghcr.io/crowrei34/cspenguin-cpak:main
         run: |
           digest=$(docker buildx imagetools inspect "$IMAGE" --format '{{.Manifest.Digest}}')
           jq --arg image "${IMAGE%:main}@${digest}" '.image = $image' cpak.json > cpak.json.tmp
