@@ -16,7 +16,7 @@ for arg in "$@"; do
 done
 
 CPAK_MODE=0
-[[ -n "${CPAK_CONTAINER_ID:-}" ]] && CPAK_MODE=1
+[[ -n "${CPAK_CONTAINER_ID:-}" || "${CSPENGUIN_CPAK:-0}" == "1" ]] && CPAK_MODE=1
 
 DOWNLOAD_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/csp-install"
 
@@ -1198,9 +1198,15 @@ echo -e "          .--."
 echo -e "         |o_o |  ${TEAL}${BOLD}CSPenguin-Installer!${RESET}"
 echo -e "         |:_/ |  ${DIM}Never stop drawing.${RESET}"
 echo -e "        //   \\ \\"
-echo -e "       (|     | )  ${DIM}this script will ask for your password${RESET}"
-echo -e "      /'\_   _/\`\\  ${DIM}once or twice to install packages${RESET}"
-echo -e "      \___)=(___/  ${DIM}and set system limits.${RESET}"
+if [[ $CPAK_MODE -eq 1 ]]; then
+    echo -e "       (|     | )  ${DIM}running inside the cpak environment${RESET}"
+    echo -e "      /'\_   _/\`\\  ${DIM}without changing host packages${RESET}"
+    echo -e "      \___)=(___/  ${DIM}or host system limits.${RESET}"
+else
+    echo -e "       (|     | )  ${DIM}this script will ask for your password${RESET}"
+    echo -e "      /'\_   _/\`\\  ${DIM}once or twice to install packages${RESET}"
+    echo -e "      \___)=(___/  ${DIM}and set system limits.${RESET}"
+fi
 echo ""
 echo ""
 echo -e "  ${BOLD}Which version of Clip Studio Paint?${RESET}"
@@ -1535,12 +1541,6 @@ step "install CSP"
 
 if [[ $DRY_RUN -eq 1 ]]; then
     ok "WebView2 Runtime (dry run)"
-    gap
-    msg "${BOLD}press enter to launch the CSP installer.${RESET}"
-    msg "${DIM}complete the installer as normal.${RESET}"
-    gap
-    printf "  ${TEAL}│${RESET}   " || true
-    read -rp "press enter to continue..." </dev/tty
     ok "Clip Studio Paint (dry run)"
 else
     info "installing WebView2 (for login/store panels)."
@@ -1812,6 +1812,7 @@ info "pre-warming the wineserver at login"
 info "reduces startup time by ~5-10s."
 gap
 if [[ $CPAK_MODE -eq 1 ]]; then
+    _prewarm="n"
     ok "wineserver managed by cpak"
 elif [[ $UPDATE_ONLY -eq 1 ]] && _prewarm_enabled; then
     _prewarm="y"

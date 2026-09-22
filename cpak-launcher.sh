@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 APP_ROOT=/opt/cspenguin
+export CSPENGUIN_CPAK=1
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/cspenguin-cpak"
 WINE_VERSION=11.4
 WINE_URL="https://github.com/Kron4ek/Wine-Builds/releases/download/${WINE_VERSION}/wine-${WINE_VERSION}-amd64.tar.xz"
