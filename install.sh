@@ -810,7 +810,12 @@ export mesa_glthread=true
 export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH="$WINEPREFIX"
 export RADV_PERFTEST=gpl
-export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-background-networking --no-first-run --disable-sync --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
+if [[ -n "\${CPAK_CONTAINER_ID:-}" ]]; then
+    export LIBGL_ALWAYS_SOFTWARE="\${LIBGL_ALWAYS_SOFTWARE:-1}"
+    export MESA_LOADER_DRIVER_OVERRIDE="\${MESA_LOADER_DRIVER_OVERRIDE:-llvmpipe}"
+    export GALLIUM_DRIVER="\${GALLIUM_DRIVER:-llvmpipe}"
+fi
+export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-background-networking --no-first-run --disable-sync --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
 WEBVIEW2_FIXED_DIR="$WEBVIEW2_FIXED_DIR"
 if [[ -d "\$WEBVIEW2_FIXED_DIR" ]] && command -v winepath >/dev/null 2>&1; then
     export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="\$(WINEPREFIX="$WINEPREFIX" winepath --windows "\$WEBVIEW2_FIXED_DIR" 2>/dev/null || true)"
@@ -883,7 +888,12 @@ export mesa_glthread=true
 export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH="$WINEPREFIX"
 export RADV_PERFTEST=gpl
-export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
+if [[ -n "\${CPAK_CONTAINER_ID:-}" ]]; then
+    export LIBGL_ALWAYS_SOFTWARE="\${LIBGL_ALWAYS_SOFTWARE:-1}"
+    export MESA_LOADER_DRIVER_OVERRIDE="\${MESA_LOADER_DRIVER_OVERRIDE:-llvmpipe}"
+    export GALLIUM_DRIVER="\${GALLIUM_DRIVER:-llvmpipe}"
+fi
+export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
 WEBVIEW2_FIXED_DIR="$WEBVIEW2_FIXED_DIR"
 if [[ -d "\$WEBVIEW2_FIXED_DIR" ]] && command -v winepath >/dev/null 2>&1; then
     export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="\$(WINEPREFIX="$WINEPREFIX" winepath --windows "\$WEBVIEW2_FIXED_DIR" 2>/dev/null || true)"
@@ -1466,6 +1476,14 @@ if [[ -z "${LIBGL_ALWAYS_SOFTWARE:-}" ]] \
     ok "Mesa software rendering (VM without working DRI3)"
 fi
 
+if [[ $CPAK_MODE -eq 1 ]]; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
+    export GALLIUM_DRIVER=llvmpipe
+    export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-background-networking --no-first-run --disable-sync --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
+    ok "software rendering for cpak display"
+fi
+
 # [3/7] wine prefix
 
 step "wine prefix"
@@ -1615,7 +1633,9 @@ else
     printf "  ${TEAL}│${RESET}   " || true
     read -rp "press enter to continue..." </dev/tty
     info "CSP installer running, come back when done..."
-    env WINEDEBUG=-all WINEDLLOVERRIDES="winemenubuilder.exe=d" \
+    env WINEDEBUG=-all \
+        WINEDLLOVERRIDES="winemenubuilder.exe=d;d3d11=b;dxgi=b;d3d10core=b;dcomp=b" \
+        WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="$WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS" \
         wine "$DOWNLOAD_DIR/$CSP_EXE_NAME" >> "$LOG_FILE" 2>&1 &
     wait $! || die "CSP installer failed"
     [[ -f "$CSP_INSTALL_PATH" ]] || die "CSP not found after install, did you complete the installer?"
