@@ -2,16 +2,16 @@
   "lock_version": "1.0",
   "root": {
     "origin": "github.com/crowrei34/uwuawa",
-    "manifest_sha256": "696e8b8617c0f7ac48bd1d0fc26570b9e2ae98c5b0f56ae880e42e150454d49b",
-    "image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:5623e9ac0119d7196966eb0df20abc97813b1a1b70abf9af20e81648458459fe",
-    "resolved_image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:ec0228be8e724e88df9759027e67ed776e514116c59b7add134a4ff085c9b75e",
+    "manifest_sha256": "24c44bd79e32fe4d168c9dcf21a0e23f5cc2fa60d7fb644d5a6c46e77f192227",
+    "image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:4a8d797958621a6e39e37ac285d49305e70697570e4cf669423cd924246fe234",
+    "resolved_image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:212141af905a66cfaf84b2ea60d86a5c0d0cfc2477ba2080d3843c674463bc7b",
     "manifest": {
       "$schema": "https://raw.githubusercontent.com/Containerpak/cpak/v2/schema/manifest-v3.json",
       "manifest_version": "3.0",
       "name": "CSPenguin Clip Studio Paint",
       "description": "Clip Studio Paint running in a portable cpak environment.",
       "version": "0.1.0",
-      "image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:5623e9ac0119d7196966eb0df20abc97813b1a1b70abf9af20e81648458459fe",
+      "image": "ghcr.io/crowrei34/cspenguin-cpak@sha256:4a8d797958621a6e39e37ac285d49305e70697570e4cf669423cd924246fe234",
       "binaries": [
         "/usr/local/bin/cspenguin-cpak",
         "/usr/local/bin/cspenguin-studio-cpak"
