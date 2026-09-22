@@ -1271,18 +1271,18 @@ fi
 step "dependencies"
 info "checking for required system packages..."
 
-_missing=()
-command -v wget >/dev/null 2>&1 || _missing+=(wget)
-command -v curl >/dev/null 2>&1 || _missing+=(curl)
-command -v unzstd >/dev/null 2>&1 || _missing+=(zstd)
-command -v wmctrl >/dev/null 2>&1 || _missing+=(wmctrl)
-command -v xprop >/dev/null 2>&1 || _missing+=(xprop)
-command -v file >/dev/null 2>&1 || _missing+=(file)
-command -v cabextract >/dev/null 2>&1 || _missing+=(cabextract)
-_gst_ok         || _missing+=("gstreamer plugins")
 if [[ $CPAK_MODE -eq 1 ]]; then
     ok "dependencies (cpak runtime)"
 else
+    _missing=()
+    command -v wget >/dev/null 2>&1 || _missing+=(wget)
+    command -v curl >/dev/null 2>&1 || _missing+=(curl)
+    command -v unzstd >/dev/null 2>&1 || _missing+=(zstd)
+    command -v wmctrl >/dev/null 2>&1 || _missing+=(wmctrl)
+    command -v xprop >/dev/null 2>&1 || _missing+=(xprop)
+    command -v file >/dev/null 2>&1 || _missing+=(file)
+    command -v cabextract >/dev/null 2>&1 || _missing+=(cabextract)
+    _gst_ok || _missing+=("gstreamer plugins")
     if [[ "$(_detect_pm)" == "xbps" ]]; then
         [[ -e /lib/ld-musl-$(uname -m).so.1 ]] && die "Void musl is not supported by the bundled Wine runtime"
         xbps-query -l void-repo-multilib 2>/dev/null | grep -q "^ii void-repo-multilib-" || _missing+=(void-repo-multilib)
