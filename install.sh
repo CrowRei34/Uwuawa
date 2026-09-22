@@ -1544,13 +1544,20 @@ if [[ $DRY_RUN -eq 1 ]]; then
     ok "Clip Studio Paint (dry run)"
 else
     info "installing WebView2 (for login/store panels)."
-    warn "WebView2 will flash open briefly, that's normal"
-    env WINEDEBUG=-all WINEDLLOVERRIDES="winemenubuilder.exe=d" \
-        wine "$WEBVIEW2_INSTALLER" >> "$LOG_FILE" 2>&1 &
-    wait $! || warn "WebView2 installer exited with an error"
+    if timeout --foreground --kill-after=15s 300s \
+        env WINEDEBUG=-all WINEDLLOVERRIDES="winemenubuilder.exe=d" \
+        wine "$WEBVIEW2_INSTALLER" /silent /install >> "$LOG_FILE" 2>&1; then
+        ok "WebView2 Runtime"
+    else
+        _webview2_status=$?
+        if [[ $_webview2_status -eq 124 || $_webview2_status -eq 137 ]]; then
+            warn "WebView2 installation timed out"
+        else
+            warn "WebView2 installer exited with an error"
+        fi
+    fi
     env WINEDEBUG=-all wineserver -k 2>/dev/null || true
     sleep 1
-    ok "WebView2 Runtime"
 
     gap
     msg "${BOLD}press enter to launch the CSP installer.${RESET}"
