@@ -75,6 +75,14 @@ else
     export CSPENGUIN_WINE_DIR="$WINE_DIR"
 fi
 
-"$APP_ROOT/install.sh" "$@"
+if [[ -t 0 && -t 1 ]]; then
+    "$APP_ROOT/install.sh" "$@"
+else
+    command -v xterm >/dev/null 2>&1 || {
+        printf '%s\n' "A terminal is required for the first launch." >&2
+        exit 1
+    }
+    xterm -T "CSPenguin Setup" -e "$APP_ROOT/install.sh" "$@"
+fi
 [[ -x "$_launcher" ]] || { printf '%s\n' "Clip Studio Paint is not installed" >&2; exit 1; }
 exec "$_launcher" "$@"

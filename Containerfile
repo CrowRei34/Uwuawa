@@ -20,6 +20,7 @@ RUN dpkg --add-architecture i386 \
         wget \
         wmctrl \
         x11-utils \
+        xterm \
         xz-utils \
         zstd \
     && rm -rf /var/lib/apt/lists/*
