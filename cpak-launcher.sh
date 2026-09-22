@@ -13,12 +13,10 @@ PREFIX="${WINEPREFIX:-$HOME/.wine-csp}"
 PAINT_EXE="$PREFIX/drive_c/Program Files/CELSYS/CLIP STUDIO 1.5/CLIP STUDIO PAINT/CLIPStudioPaint.exe"
 PAINT_LAUNCHER="$HOME/.local/share/cspenguin/csp-launch.sh"
 STUDIO_LAUNCHER="$HOME/.local/share/cspenguin/clipstudio-launch.sh"
+WEBVIEW2_FIXED_ROOT="$PREFIX/drive_c/CSPenguinWebView2"
+WEBVIEW2_INSTALLED_ROOT="$PREFIX/drive_c/Program Files (x86)/Microsoft/EdgeWebView/Application"
 _launcher="$PAINT_LAUNCHER"
 [[ "$(basename "$0")" == "cspenguin-studio-cpak" ]] && _launcher="$STUDIO_LAUNCHER"
-
-if [[ -x "$_launcher" && -f "$PAINT_EXE" ]]; then
-    exec "$_launcher" "$@"
-fi
 
 _find_wine() {
     local _candidate
@@ -74,6 +72,38 @@ if [[ -n "$_wine_bin" ]]; then
 else
     _download_wine
     export CSPENGUIN_WINE_DIR="$WINE_DIR"
+fi
+
+_freeze_webview2() {
+    local _root _dir _version _portable
+    for _root in "$WEBVIEW2_FIXED_ROOT" "$WEBVIEW2_INSTALLED_ROOT"; do
+        _dir=$(find "$_root" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*' -print 2>/dev/null | sort -V | tail -n 1 || true)
+        if [[ -n "$_dir" && -f "$_dir/msedgewebview2.exe" ]]; then
+            if [[ "$_dir" != "$WEBVIEW2_FIXED_ROOT"/* ]]; then
+                _version="${_dir##*/}"
+                _portable="$WEBVIEW2_FIXED_ROOT/$_version"
+                if [[ ! -f "$_portable/msedgewebview2.exe" ]]; then
+                    mkdir -p "$WEBVIEW2_FIXED_ROOT"
+                    cp -a "$_dir" "$_portable"
+                fi
+                _dir="$_portable"
+            fi
+            WEBVIEW2_FIXED_DIR="$_dir"
+            return 0
+        fi
+    done
+    return 1
+}
+
+WEBVIEW2_FIXED_DIR=""
+_freeze_webview2 || true
+if [[ -n "$WEBVIEW2_FIXED_DIR" && -x "$CSPENGUIN_WINE_DIR/bin/winepath" ]]; then
+    _webview2_path=$(WINEPREFIX="$PREFIX" "$CSPENGUIN_WINE_DIR/bin/winepath" --windows "$WEBVIEW2_FIXED_DIR" 2>/dev/null || true)
+    [[ -n "$_webview2_path" ]] && export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="$_webview2_path"
+fi
+
+if [[ -x "$_launcher" && -f "$PAINT_EXE" ]]; then
+    exec "$_launcher" "$@"
 fi
 
 if [[ -t 0 && -t 1 ]]; then

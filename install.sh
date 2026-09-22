@@ -119,6 +119,9 @@ WEBVIEW2_URL="https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservic
 WEBVIEW2_SHA256="9f4b90be849ee2fdb1260ff5236bd0faffc5b3e5b48113918ddc6ab031ebbb9e"
 WEBVIEW2_FILE="$DOWNLOAD_DIR/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
 WEBVIEW2_MANAGED="/opt/cspenguin/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
+WEBVIEW2_FIXED_ROOT="$WINEPREFIX/drive_c/CSPenguinWebView2"
+WEBVIEW2_INSTALLED_ROOT="$WINEPREFIX/drive_c/Program Files (x86)/Microsoft/EdgeWebView/Application"
+WEBVIEW2_FIXED_DIR=""
 WINETRICKS_URL="https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks"
 GECKO_VERSION="2.47.4"
 GECKO_URL="https://dl.winehq.org/wine/wine-gecko/${GECKO_VERSION}/wine-gecko-${GECKO_VERSION}-x86_64.msi"
@@ -149,6 +152,39 @@ run() {
         _rc=$?
     fi
     return "$_rc"
+}
+
+_find_webview2_fixed() {
+    local _root _dir
+    for _root in "$WEBVIEW2_FIXED_ROOT" "$WEBVIEW2_INSTALLED_ROOT"; do
+        _dir=$(find "$_root" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*' -print 2>/dev/null | sort -V | tail -n 1 || true)
+        if [[ -n "$_dir" && -f "$_dir/msedgewebview2.exe" ]]; then
+            WEBVIEW2_FIXED_DIR="$_dir"
+            return 0
+        fi
+    done
+    WEBVIEW2_FIXED_DIR=""
+    return 1
+}
+
+_freeze_webview2_fixed() {
+    _find_webview2_fixed || return 1
+    if [[ "$WEBVIEW2_FIXED_DIR" == "$WEBVIEW2_FIXED_ROOT"/* ]]; then
+        return 0
+    fi
+    local _version="${WEBVIEW2_FIXED_DIR##*/}" _portable="$WEBVIEW2_FIXED_ROOT/$_version"
+    if [[ ! -f "$_portable/msedgewebview2.exe" ]]; then
+        mkdir -p "$WEBVIEW2_FIXED_ROOT"
+        cp -a "$WEBVIEW2_FIXED_DIR" "$_portable"
+    fi
+    WEBVIEW2_FIXED_DIR="$_portable"
+}
+
+_webview2_env() {
+    [[ -n "$WEBVIEW2_FIXED_DIR" ]] || return 0
+    local _path
+    _path=$(WINEPREFIX="$WINEPREFIX" winepath -w "$WEBVIEW2_FIXED_DIR" 2>/dev/null || true)
+    [[ -n "$_path" ]] && export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="$_path"
 }
 
 GH_RAW="https://raw.githubusercontent.com/parka6060/CSPenguin-Installer/main"
@@ -751,6 +787,7 @@ _bundle_freetype() {
 # write both launcher scripts (PAINT + STUDIO)
 # ============================================================
 _write_launchers() {
+    _freeze_webview2_fixed || true
     cat > "$LAUNCH_SCRIPT" << LAUNCHEOF
 #!/usr/bin/env bash
 ulimit -n 524288 2>/dev/null || true
@@ -774,6 +811,10 @@ export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH="$WINEPREFIX"
 export RADV_PERFTEST=gpl
 export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-background-networking --no-first-run --disable-sync --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
+WEBVIEW2_FIXED_DIR="$WEBVIEW2_FIXED_DIR"
+if [[ -d "\$WEBVIEW2_FIXED_DIR" ]] && command -v winepath >/dev/null 2>&1; then
+    export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="\$(WINEPREFIX="$WINEPREFIX" winepath --windows "\$WEBVIEW2_FIXED_DIR" 2>/dev/null || true)"
+fi
 CSP_EXE="$CSP_INSTALL_PATH"
 
 # Pre-load material database into page cache to help speed up loading of materials.
@@ -843,6 +884,10 @@ export __GL_SHADER_DISK_CACHE=1
 export __GL_SHADER_DISK_CACHE_PATH="$WINEPREFIX"
 export RADV_PERFTEST=gpl
 export WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--no-sandbox --disable-gpu-compositing --disable-gpu-vsync --in-process-gpu --disable-renderer-accessibility --disable-extensions --disable-component-extensions-with-background-pages --disk-cache-size=33554432 --disable-features=msEdgeSidebar"
+WEBVIEW2_FIXED_DIR="$WEBVIEW2_FIXED_DIR"
+if [[ -d "\$WEBVIEW2_FIXED_DIR" ]] && command -v winepath >/dev/null 2>&1; then
+    export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="\$(WINEPREFIX="$WINEPREFIX" winepath --windows "\$WEBVIEW2_FIXED_DIR" 2>/dev/null || true)"
+fi
 exec wine "$STUDIO_EXE"
 LAUNCHEOF
     chmod +x "$LAUNCHER_STUDIO"
@@ -1543,20 +1588,24 @@ if [[ $DRY_RUN -eq 1 ]]; then
     ok "WebView2 Runtime (dry run)"
     ok "Clip Studio Paint (dry run)"
 else
-    info "installing WebView2 (for login/store panels)."
-    if timeout --foreground --kill-after=15s 300s \
-        env WINEDEBUG=-all WINEDLLOVERRIDES="winemenubuilder.exe=d" \
-        wine "$WEBVIEW2_INSTALLER" /silent /install >> "$LOG_FILE" 2>&1; then
-        ok "WebView2 Runtime"
+    _freeze_webview2_fixed || true
+    if [[ -n "$WEBVIEW2_FIXED_DIR" ]]; then
+        _webview2_env
+        ok "WebView2 Runtime (fixed)"
     else
-        _webview2_status=$?
-        if [[ $_webview2_status -eq 124 || $_webview2_status -eq 137 ]]; then
-            warn "WebView2 installation timed out"
+        info "installing WebView2 (for login/store panels)."
+        timeout --foreground --kill-after=15s 120s \
+            env WINEDEBUG=-all WINEDLLOVERRIDES="winemenubuilder.exe=d" \
+            wine "$WEBVIEW2_INSTALLER" /silent /install >> "$LOG_FILE" 2>&1 || true
+        env WINEDEBUG=-all wineserver -k 2>/dev/null || true
+        _freeze_webview2_fixed || true
+        if [[ -n "$WEBVIEW2_FIXED_DIR" ]]; then
+            _webview2_env
+            ok "WebView2 Runtime (fixed)"
         else
-            warn "WebView2 installer exited with an error"
+            warn "WebView2 runtime was not detected"
         fi
     fi
-    env WINEDEBUG=-all wineserver -k 2>/dev/null || true
     sleep 1
 
     gap
