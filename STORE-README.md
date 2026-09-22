@@ -5,7 +5,7 @@ Clip Studio Paint for Linux through cpak and Wine.
 Install with:
 
 ```sh
-cpak install github.com/OWNER/REPOSITORY
+cpak install github.com/crowrei34/uwuawa
 ```
 
 The package searches for a Wine runtime already available to the user. If none is found, it downloads and verifies Wine 11.4 on first launch and stores it in the cpak data directory.

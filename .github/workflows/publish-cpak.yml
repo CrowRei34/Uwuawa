@@ -60,7 +60,7 @@ jobs:
 
       - name: Install cpak validator
         env:
-          CPAK_VERSION: v2.13.2
+          CPAK_VERSION: v2.13.3
         run: |
           mkdir -p "$RUNNER_TEMP/cpak"
           cd "$RUNNER_TEMP/cpak"
