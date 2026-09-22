@@ -1633,6 +1633,7 @@ else
     printf "  ${TEAL}│${RESET}   " || true
     read -rp "press enter to continue..." </dev/tty
     info "CSP installer running, come back when done..."
+    run wine reg add "HKCU\\Software\\Wine\\AppDefaults\\$CSP_EXE_NAME" /v Version /t REG_SZ /d "win81" /f || warn "failed to set installer compatibility"
     env WINEDEBUG=-all \
         WINEDLLOVERRIDES="winemenubuilder.exe=d;d3d11=b;dxgi=b;d3d10core=b;dcomp=b" \
         WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="$WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS" \
